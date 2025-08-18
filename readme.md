@@ -93,3 +93,86 @@ We can also have the following config files:
 
 ## Multiple Providers and Resources
 E.g local file and random to generate random pet names. Code in [multiple-providers](./multiple-providers/)
+
+
+---
+
+## Variables
+
+Variables are set in `variables.tf`
+
+```tf
+variable "filename" {
+    default = "/root/pets.txt"
+    type = string # optional: string, number, bool, any (default)
+    # other types: list, map, object, tuple
+    description = "the description"
+}
+
+# list
+variable "prefix" {
+    default = ["Mr", "Mrs", "Sir"] # index begins at 0
+    type = list # or list(string)
+}
+
+# usage
+resource "local_file" {
+    filename = var.filename
+    content = var.prefix[0]
+}
+
+# maps
+variable file-content {
+    type = map # or map(string) : data type is of the value not key
+    default = {
+        "statement1" = "We love pets!"
+        "statement2" = "We love animals!"
+    }
+}
+
+# usage
+var.file-content["statement1"]
+
+# sets are same as lists only that the values don't repeat e.g
+variable "prefix" {
+    type = set(string)
+    default = ["Mr", "Mrs"]
+}
+
+# objects : complex data structures
+variable "bella" {
+    type = object({
+        name = string
+        color = string
+        age = number
+        food = list(string)
+        favorite = bool
+    })
+    default = {
+        name = "Bella"
+        color = "Black"
+        age = 1
+        food = ["Fish", "Chips"]
+        favorite = true
+    }
+}
+
+# tuple similar to list, but can have multiple data types
+variable kitty {
+    type = tuple([string, number, bool])
+    default = ["cat", 7, true]
+}
+# usage:
+var.kitty
+```
+
+to use it in `main.tf`
+
+```tf
+resource "local_file" "pet" {
+    filename = var.filename
+    content = "Using variables"
+}
+```
+
+To make updates, you can just make changes to the variables.tf and the main.tf won't be changed. This is important if you're setting up the same resources with different names, specs etc for dev and production.

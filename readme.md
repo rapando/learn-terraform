@@ -89,3 +89,7 @@ We can also have the following config files:
 | `provider.tf` | Contains provider definitions |
 
 
+---
+
+## Multiple Providers and Resources
+E.g local file and random to generate random pet names. Code in [multiple-providers](./multiple-providers/)

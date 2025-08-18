@@ -176,3 +176,34 @@ resource "local_file" "pet" {
 ```
 
 To make updates, you can just make changes to the variables.tf and the main.tf won't be changed. This is important if you're setting up the same resources with different names, specs etc for dev and production.
+
+---
+
+## Using variables.
+
+When variables don't have default values, you can either:
+- enter the variables during apply or
+- add them to apply on CLI e.g `terraform apply -var "filename=/hello.txt" -var "prefix=mrs"`
+
+We can also use environment variables
+
+```sh
+export TF_VAR_filename="/root/hello.txt"
+export TF_VAR_prefix="Mr"
+terraform apply
+```
+
+
+We can also use a environment file `terraform.tfvars` or `terraform.tfvars.json`
+
+```tfvars
+filename = "/root/hello.txt"
+prefix = "Mrs"
+```
+
+Variable definition precedence: If multiple exist, the one lower on the list is used.
+
+1.  Env Variables
+2. terraform.tfvars
+3. *.auto.tfvars (alphabetic order)
+4. -var or var-file 

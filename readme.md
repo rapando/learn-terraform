@@ -1,209 +1,37 @@
-# Introduction.
+# EC2
+EC2: Elastic Cloud Compute
+AMI: Amazon Machine Image (each image has an id)
+Instance type: depends on the type of workload.
+    General use, compute, memory optimised etc
 
-[Terraform](http://terraform.io)
+EBS (Elastic Block Storage) storage for these instance types. These storages are attached to the instance.
 
-Language: HCL (Hashicorp Configuration Language)
-File Extensions: *.tf
+User data can be passed e.g a script to deploy applications e.g nginx
+We use ssh keys to access the instance
 
----
+The provisioner for local exec is used to save info locally, e.g the public ip of the instance that was created. The remote-exec is run on the instance.
 
-Resource in terraform is anything managed by terraform e.g a file, a vm, database.
+Use provisioners sparingly.
 
-Providers are kind of middleware that allow you to use terraform to create and manage resources.
 
----
+# Terraform Taint
+Terraform marks a resource as tainted if it fails to apply e.g because a provisioner failed.
+If we want to recreate a resource we can taint it so that it will not  recreated in the next apply.
 
-### HCL Basics
+untaint untaints a previous taint.
 
-A HCL file can have blocks and arguments. A block is defined within curly braces and arguments are in pairs.
-
+## Log Levelts
 ```tf
-<block> <parameters> {
-    key1 = value1
-    key2 = value2
-}
+export TF_LOG=TRACE terraform apply
 ```
 
-For example, to create a file in a directory, we can do: [./terraform-local-file/local.tf](./terraform-local-file/local.tf)
-
-
----
-
-A simple terraform workflow consists of 4 steps:
-
-1. Write the config file.
-2. Run `terraform init` command.
-3. Run `terraform plan` command to review the execution plan
-4. When ready, run `terraform apply` command.
-
-When the tf file is updated, the resource is deleted and recreated (immutable)
-
-If you want to destroy resources, run `terraform destroy`
-
----
-
-## Providers
-Providers are downloaded (as plugins) when `terraform init` is run.
-They can be found on the [Terraform Registry](https://registry.terraform.io)
-
-There are 3 tiers:
-
-1. Provided and maintained by Hashicorp e.g. AWS, GCP, Local
-2. Partner provider: owned and maintained by 3rd party which coordinate with Hashicorp e.g Digital Ocean, Heroku
-3. Community providers: Individual contributors.
-
-`terraform init` can be run any number of times.
-Plugins are installed in `./terraform` directory.
-
-The plugin name format is: `provider/type` e.g `hashicorp/local`
-
-A plugin can be prefixed by the provider registry, if not set, it defaults to `registry.terraform.io`
-
-By default, the latest version is installed. In case this might make breaking changes, specify the version.
-
----
-
-## Configuration Directory.
-
-You can have multiple .tf files. A single tf file can also have multiple config blocks e.g. `main.tf`
-
-```tf
-resource "local_file" "pet" {
-    filename = "./pet.txt"
-    content = "We love Pets!"
-}
-
-resource "local_file" "cat" {
-    filename = "./cat.txt"
-    content = "My favorite pet is Mr. Whiskers"
-} 
-```
-
-We can also have the following config files:
-
-| File Name | Purpose |
-| --- | --- |
-| `main.tf` | Main config file containing resource definition |
-| `variables.tf` | Contains variable declaration |
-| `outputs.tf` | Contains outputs from resources |
-| `provider.tf` | Contains provider definitions |
-
-
----
-
-## Multiple Providers and Resources
-E.g local file and random to generate random pet names. Code in [multiple-providers](./multiple-providers/)
-
-
----
-
-## Variables
-
-Variables are set in `variables.tf`
-
-```tf
-variable "filename" {
-    default = "/root/pets.txt"
-    type = string # optional: string, number, bool, any (default)
-    # other types: list, map, object, tuple
-    description = "the description"
-}
-
-# list
-variable "prefix" {
-    default = ["Mr", "Mrs", "Sir"] # index begins at 0
-    type = list # or list(string)
-}
-
-# usage
-resource "local_file" {
-    filename = var.filename
-    content = var.prefix[0]
-}
-
-# maps
-variable file-content {
-    type = map # or map(string) : data type is of the value not key
-    default = {
-        "statement1" = "We love pets!"
-        "statement2" = "We love animals!"
-    }
-}
-
-# usage
-var.file-content["statement1"]
-
-# sets are same as lists only that the values don't repeat e.g
-variable "prefix" {
-    type = set(string)
-    default = ["Mr", "Mrs"]
-}
-
-# objects : complex data structures
-variable "bella" {
-    type = object({
-        name = string
-        color = string
-        age = number
-        food = list(string)
-        favorite = bool
-    })
-    default = {
-        name = "Bella"
-        color = "Black"
-        age = 1
-        food = ["Fish", "Chips"]
-        favorite = true
-    }
-}
-
-# tuple similar to list, but can have multiple data types
-variable kitty {
-    type = tuple([string, number, bool])
-    default = ["cat", 7, true]
-}
-# usage:
-var.kitty
-```
-
-to use it in `main.tf`
-
-```tf
-resource "local_file" "pet" {
-    filename = var.filename
-    content = "Using variables"
-}
-```
-
-To make updates, you can just make changes to the variables.tf and the main.tf won't be changed. This is important if you're setting up the same resources with different names, specs etc for dev and production.
-
----
-
-## Using variables.
-
-When variables don't have default values, you can either:
-- enter the variables during apply or
-- add them to apply on CLI e.g `terraform apply -var "filename=/hello.txt" -var "prefix=mrs"`
-
-We can also use environment variables
+# Terraform Import
+Import existing infrastructure into terraform config. For example, existing servers and dbs that were created elsewhere.
 
 ```sh
-export TF_VAR_filename="/root/hello.txt"
-export TF_VAR_prefix="Mr"
-terraform apply
+terraform import <resource_type>.<resource_name> <attribute>
+# e.g.
+terraform import aws_instance.webserver-2 i-jkvsdhvbfj
 ```
 
-
-We can also use a environment file `terraform.tfvars` or `terraform.tfvars.json`
-
-```tfvars
-filename = "/root/hello.txt"
-prefix = "Mrs"
-```
-
-Variable definition precedence: If multiple exist, the one lower on the list is used.
-
-1.  Env Variables
-2. terraform.tfvars
-3. *.auto.tfvars (alphabetic order)
-4. -var or var-file 
+this does not update the configs (they are in tfstate- check new version)
